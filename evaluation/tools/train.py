@@ -37,7 +37,7 @@ def train_model(model,
         # train loop
         for i, (train_x, train_y, mask) in enumerate(train_tqdm):
             train_tqdm.set_description(
-                "    Training - Epoch: {}/{}, Loss: {:.4f}, F1: {:.4f}, Best F1: {:.4f}".
+                "Training - Epoch: {}/{}, Loss: {:.4f}, F1: {:.4f}, Best F1: {:.4f}".
                 format(epoch + 1, args.epochs, loss, macro_f1, best_f1))
             train_tqdm.refresh()
 
@@ -66,7 +66,7 @@ def train_model(model,
         # evaluation loop -> mostly same as the training loop, but without updating the parameters
         for i, (dev_x, dev_y, mask) in enumerate(dev_tqdm):
             dev_tqdm.set_description(
-                "    Evaluating - Epoch: {}/{}, Loss: {:.4f}, F1: {:.4f}, Best F1: {:.4f}".
+                "Evaluating - Epoch: {}/{}, Loss: {:.4f}, F1: {:.4f}, Best F1: {:.4f}".
                 format(epoch + 1, args.epochs, loss, macro_f1, best_f1))
             dev_tqdm.refresh()
 
@@ -90,7 +90,7 @@ def train_model(model,
         if curr_patience > args.patience:
             break
 
-    return best_f1
+    print("Highest dev F1 score obtained: {:.2f}".format(best_f1 * 100))
 
 
 def train(train_loader, dev_loader, label_encoder, device):

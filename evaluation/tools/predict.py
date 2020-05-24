@@ -33,9 +33,9 @@ def main():
 
     list_labels = []
 
-    test_tqdm = tqdm(test_loader, leave=False)
+    test_tqdm = tqdm(test_loader)
     for i, (test_x, _, mask) in enumerate(test_tqdm):
-        test_tqdm.set_description("    Predicting tags for sentence: {}/{}...".format(i + 1, len(test_loader.dataset)))
+        test_tqdm.set_description("Predicting tags for sentence: {}/{}...".format(i + 1, len(test_loader.dataset)))
         test_tqdm.refresh()
 
         logits = model.forward(test_x, mask)
