@@ -24,7 +24,7 @@ if [ -n "$3" ]; then
 	device="$3"
 fi
 
-datetime=$(date +"%d/%m/%Y-%H:%M:%S")
+datetime=$(date +"%d-%m-%Y-%H:%M:%S")
 model_basename=$(basename $model)
 model_frozen_dir="models/$model_basename/ronec_frozen"
 model_dir="models/$model_basename/ronec"
