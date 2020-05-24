@@ -4,13 +4,13 @@ from model import LangModelWithDense
 from tqdm.autonotebook import tqdm as tqdm
 from transformers import *
 from utils import Meter
-
+from datetime import datetime as dt
 
 
 def train_model(model,
                 train_loader, dev_loader,
                 optimizer, criterion,
-                num_classes, target_classes, it,
+                num_classes, target_classes, datetime,
                 label_encoder,
                 device):
 
@@ -81,7 +81,7 @@ def train_model(model,
         if macro_f1 > best_f1:
             curr_patience = 0
             best_f1 = macro_f1
-            torch.save(model, os.path.join(args.save_path, "model_{}.pt".format(it + 1)))
+            torch.save(model, os.path.join(args.save_path, "model_{}.pt".format(datetime)))
             with open(os.path.join(args.save_path, "label_encoder.pk"), "wb") as file:
                 pickle.dump(label_encoder, file)
         else:
@@ -94,51 +94,35 @@ def train_model(model,
 
 
 def train(train_loader, dev_loader, label_encoder, device):
-    it_tqdm = tqdm(range(args.iterations))
-    results = []
+    # select the desired language model and get the embeddings size
+    lang_model = AutoModel.from_pretrained(args.lang_model_name)
+    input_size = 768 if "base" in args.lang_model_name else 1024
 
-    AutoModel.from_pretrained(args.lang_model_name)
+    # create the model, the optimizer (weights are set to 0 for <pad> and <X>) and the loss function
+    model = LangModelWithDense(lang_model, input_size, len(label_encoder.classes_), args.fine_tune).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    weights = torch.tensor(
+        [1 if label != args.pad_label and label != args.null_label else 0 for label in label_encoder.classes_],
+        dtype=torch.float32).to(device)
+    criterion = torch.nn.CrossEntropyLoss(weight=weights)
 
-    it_tqdm.set_description("Iteration: {}/{}, Results F1: {}, Mean F1: {:.4f}"
-                            .format(1, args.iterations, [], 0))
-    it_tqdm.refresh()
+    # remove the null_label (X), the pad label (<pad>) and the (O)-for NER only from the evaluated targets during training
+    classes = label_encoder.classes_.tolist()
+    classes.remove(args.null_label)
+    classes.remove(args.pad_label)
+    if args.remove_o_label:
+        classes.remove("O")
+    target_classes = [label_encoder.transform([clss])[0] for clss in classes]
 
-    for it in it_tqdm:
-        # select the desired language model and get the embeddings size
-        lang_model = AutoModel.from_pretrained(args.lang_model_name)
-        input_size = 768 if "base" in args.lang_model_name else 1024
+    datetime = dt.now().strftime("%d/%m/%Y-%H:%M:%S") if args.datetime == "" else args.datetime
 
-        # create the model, the optimizer (weights are set to 0 for <pad> and <X>) and the loss function
-        model = LangModelWithDense(lang_model, input_size, len(label_encoder.classes_), args.fine_tune).to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-        weights = torch.tensor(
-            [1 if label != args.pad_label and label != args.null_label else 0 for label in label_encoder.classes_],
-            dtype=torch.float32).to(device)
-        criterion = torch.nn.CrossEntropyLoss(weight=weights)
-
-        # remove the null_label (X), the pad label (<pad>) and the (O)-for NER only from the evaluated targets during training
-        classes = label_encoder.classes_.tolist()
-        classes.remove(args.null_label)
-        classes.remove(args.pad_label)
-        if args.remove_o_label:
-            classes.remove("O")
-        target_classes = [label_encoder.transform([clss])[0] for clss in classes]
-
-        # start training
-        best_f1 = train_model(model,
-                              train_loader, dev_loader,
-                              optimizer, criterion,
-                              len(label_encoder.classes_), target_classes, it,
-                              label_encoder,
-                              device)
-
-        results.append(best_f1)
-
-        it_tqdm.set_description("Iteration: {}/{}, Results F1: {}, Mean F1: {:.4f}"
-                                .format(it + 1, args.iterations,
-                                        ["{:.4f}".format(elem) for elem in results],
-                                        0 if len(results) == 0 else sum(results) / (it + 1)))
-        it_tqdm.refresh()
+    # start training
+    train_model(model,
+                train_loader, dev_loader,
+                optimizer, criterion,
+                len(label_encoder.classes_), target_classes, datetime,
+                label_encoder,
+                device)
 
 
 def main():
@@ -164,8 +148,8 @@ if __name__ == "__main__":
     parser.add_argument("train_path", type=str)
     parser.add_argument("dev_path", type=str)
     parser.add_argument("predict_column", type=int)
+    parser.add_argument("--datetime", type=str, default="")
     parser.add_argument("--tokens_column", type=int, default=1)
-    parser.add_argument("--iterations", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--learning_rate", type=float, default=2e-4)

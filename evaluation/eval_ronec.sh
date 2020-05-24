@@ -20,22 +20,11 @@ fi
 
 device="cuda"
 
-if [ -n "$2" ]; then
-  if  [[ "$2" =~ ^[0-9]+$ ]]
-  then
-	  iterations=$2
-	else
-	  device="$2"
-	  iterations=1
-	fi
-else
-	iterations=1
-fi
-
 if [ -n "$3" ]; then
 	device="$3"
 fi
 
+datetime=$(date +"%d/%m/%Y-%H:%M:%S")
 model_basename=$(basename $model)
 model_frozen_dir="models/$model_basename/ronec_frozen"
 model_dir="models/$model_basename/ronec"
@@ -49,7 +38,7 @@ printf "Device: %s\n\n" $device
 
 [ ! -d "$model_frozen_dir" ] && mkdir -p "$model_frozen_dir"
 
-python3 tools/train.py dataset-ronec/train.conllu dataset-ronec/dev.conllu 10 --save_path "$model_frozen_dir" --lang_model_name "$model" --device $device --iterations "$iterations" --remove_o_label
+python3 tools/train.py dataset-ronec/train.conllu dataset-ronec/dev.conllu 10 --save_path "$model_frozen_dir" --lang_model_name "$model" --device $device --remove_o_label --datetime "$datetime"
 
 printf "\nFinished.\n"
 
@@ -62,7 +51,7 @@ printf "Device: %s\n" $device
 
 [ ! -d "$model_dir" ] && mkdir -p "$model_dir"
 
-python3 tools/train.py dataset-ronec/train.conllu dataset-ronec/dev.conllu 10 --save_path "$model_dir" --lang_model_name "$model" --device $device --fine_tune --epochs 10 --learning_rate 2e-5 --iterations "$iterations" --batch_size 16 --remove_o_label
+python3 tools/train.py dataset-ronec/train.conllu dataset-ronec/dev.conllu 10 --save_path "$model_dir" --lang_model_name "$model" --device $device --fine_tune --epochs 10 --learning_rate 2e-5 --batch_size 16 --remove_o_label --datetime "$datetime"
 
 printf "\nFinished.\n"
 
@@ -75,8 +64,8 @@ printf "Model: %s\n" "$1"
 printf "Load path: %s\n" "$model_frozen_dir"
 printf "Device: %s\n\n" $device
 
-python3 tools/predict.py dataset-ronec/test.conllu "$model_frozen_dir" 10 --lang_model_name "$model" --output_path "outputs/$model_basename/predict_ronec_frozen.conllu" --device $device --iterations "$iterations"
-output=$(python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec_frozen.conllu" --iterations "$iterations")
+python3 tools/predict.py dataset-ronec/test.conllu "$model_frozen_dir" 10 --lang_model_name "$model" --output_path "outputs/$model_basename/predict_ronec_frozen.conllu" --device $device --datetime "$datetime"
+output=$(python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec_frozen.conllu" --datetime "$datetime")
 echo "$output"
 echo "$output" > "results/$model_basename/ronec_frozen.txt"
 
@@ -88,9 +77,8 @@ printf "Model: %s\n" "$1"
 printf "Load path: %s\n" "$model_dir"
 printf "Device: %s\n\n" $device
 
-python3 tools/predict.py dataset-ronec/test.conllu "$model_dir" 10 --lang_model_name "$model" --output_path "outputs/$model_basename/predict_ronec.conllu" --device $device --iterations "$iterations"
-output=$(python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec.conllu" --iterations "$iterations")
-echo "$output"
+python3 tools/predict.py dataset-ronec/test.conllu "$model_dir" 10 --lang_model_name "$model" --output_path "outputs/$model_basename/predict_ronec.conllu" --device $device --datetime "$datetime"
+python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec.conllu" --datetime "$datetime" --output_path "results/$model_basename"
 echo "$output" > "results/$model_basename/ronec.txt"
 
 printf "\nFinished.\n"

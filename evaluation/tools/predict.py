@@ -2,10 +2,13 @@ import torch, argparse, os, pickle
 from load import load_data_from_file
 from transformers import *
 from tqdm.autonotebook import tqdm as tqdm
+from datetime import datetime as dt
 
 
 def main():
     device = torch.device(args.device)
+
+    datetime = dt.now().strftime("%d/%m/%Y-%H:%M:%S") if args.datetime == "" else args.datetime
 
     with open(os.path.join(args.model_path, "label_encoder.pk"), "rb") as file:
         label_encoder = pickle.load(file)
@@ -24,64 +27,58 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(args.lang_model_name,
                                               do_lower_case=True if "uncased" in args.lang_model_name else False)
 
-    it_tqdm = tqdm(range(args.iterations))
+    model = torch.load(os.path.join(args.model_path, "model_{}.pt".format(datetime)), map_location=args.device)
+    model.fine_tune = False
+    model.eval()
 
-    for it in it_tqdm:
-        it_tqdm.set_description("Evaluating model no: {}/{}".format(it + 1, args.iterations))
-        it_tqdm.refresh()
+    list_labels = []
 
-        model = torch.load(os.path.join(args.model_path, "model_{}.pt".format(it + 1)), map_location=args.device)
-        model.fine_tune = False
-        model.eval()
+    test_tqdm = tqdm(test_loader, leave=False)
+    for i, (test_x, _, mask) in enumerate(test_tqdm):
+        test_tqdm.set_description("    Predicting tags for sentence: {}/{}...".format(i + 1, len(test_loader.dataset)))
+        test_tqdm.refresh()
 
-        list_labels = []
+        logits = model.forward(test_x, mask)
+        preds = torch.argmax(logits, 2)
 
-        test_tqdm = tqdm(test_loader, leave=False)
-        for i, (test_x, _, mask) in enumerate(test_tqdm):
-            test_tqdm.set_description("    Predicting tags for sentence: {}/{}...".format(i + 1, len(test_loader.dataset)))
-            test_tqdm.refresh()
+        end = torch.argmax(mask.to("cpu"), dim=1)
 
-            logits = model.forward(test_x, mask)
-            preds = torch.argmax(logits, 2)
+        labels = label_encoder.inverse_transform(preds[0][1:end].tolist())
+        list_labels.append(labels)
 
-            end = torch.argmax(mask.to("cpu"), dim=1)
+    output_path = args.output_path.split(".")[0] + "_{}.".format(datetime) + args.output_path.split(".")[1]
 
-            labels = label_encoder.inverse_transform(preds[0][1:end].tolist())
-            list_labels.append(labels)
+    with(open(os.path.join(args.test_path), "r", encoding='utf-8')) as in_file, \
+         open(os.path.join(output_path), "w", encoding='utf-8') as out_file:
 
-        output_path = args.output_path.split(".")[0] + "_{}.".format(it + 1) + args.output_path.split(".")[1]
+        sentence_idx = 0
+        label_idx = 0
 
-        with(open(os.path.join(args.test_path), "r", encoding='utf-8')) as in_file, \
-             open(os.path.join(output_path), "w", encoding='utf-8') as out_file:
+        for line in in_file:
+            if not line.startswith("#"):
+                if line not in [" ", "\n"]:
+                    tokens = line.split(args.separator)
 
-            sentence_idx = 0
-            label_idx = 0
+                    token = tokens[args.token_column]
+                    subtokens = tokenizer.encode(token, add_special_tokens=False)
 
-            for line in in_file:
-                if not line.startswith("#"):
-                    if line not in [" ", "\n"]:
-                        tokens = line.split(args.separator)
+                    tokens[args.predict_column] = list_labels[sentence_idx][label_idx]
 
-                        token = tokens[args.token_column]
-                        subtokens = tokenizer.encode(token, add_special_tokens=False)
+                    label_idx += len(subtokens)
 
-                        tokens[args.predict_column] = list_labels[sentence_idx][label_idx]
+                    for token in tokens[:-1]:
+                        out_file.write("{}{}".format(token, args.separator))
 
-                        label_idx += len(subtokens)
-
-                        for token in tokens[:-1]:
-                            out_file.write("{}{}".format(token, args.separator))
-
-                        out_file.write("{}".format(tokens[-1] + "\n" if "\n" not in tokens[-1] else tokens[-1]))
-                    else:
-                        # print(label_idx, len(curr_labels))
-                        assert label_idx == len(list_labels[sentence_idx])
-
-                        out_file.write("\n")
-                        sentence_idx += 1
-                        label_idx = 0
+                    out_file.write("{}".format(tokens[-1] + "\n" if "\n" not in tokens[-1] else tokens[-1]))
                 else:
-                    out_file.write(line)
+                    # print(label_idx, len(curr_labels))
+                    assert label_idx == len(list_labels[sentence_idx])
+
+                    out_file.write("\n")
+                    sentence_idx += 1
+                    label_idx = 0
+            else:
+                out_file.write(line)
 
 
 if __name__ == "__main__":
@@ -89,6 +86,7 @@ if __name__ == "__main__":
     parser.add_argument("test_path")
     parser.add_argument("model_path", type=str)
     parser.add_argument("predict_column", type=int)
+    parser.add_argument("--datetime", type=str, default="")
     parser.add_argument("--lang_model_name", type=str, default="bert-base-cased")
     parser.add_argument("--token_column", type=int, default=1)
     parser.add_argument("--output_path", type=str, default="output/predict.conllu")

@@ -3,6 +3,9 @@ import json
 import logging
 from collections import namedtuple
 from copy import deepcopy
+from datetime import datetime as dt
+import json
+import os
 
 
 Entity = namedtuple("Entity", "e_type start_offset end_offset")
@@ -463,83 +466,62 @@ def main():
                     list_gold.append(list_sent)
                     list_sent = []
 
-    metrics = ["Entity Type", "Partial", "Strict", "Exact"]
-    dict_prec = {metric: 0 for metric in metrics}
-    dict_rec = {metric: 0 for metric in metrics}
-    dict_f1 = {metric: 0 for metric in metrics}
+    metrics = {"Entity Type": {}, "Partial": {}, "Strict": {}, "Exact": {}}
+    datetime = dt.now().strftime("%d/%m/%Y-%H:%M:%S") if args.datetime == "" else args.datetime
 
-    for it in range(args.iterations):
-        list_pred = []
-        pred_path = args.pred_path.split(".")[0] + "_{}.".format(it + 1) + args.pred_path.split(".")[1]
+    list_pred = []
+    pred_path = args.pred_path.split(".")[0] + "_{}.".format(datetime) + args.pred_path.split(".")[1]
 
-        with open(pred_path, "r", encoding='utf-8') as pred_file:
-            list_sent = []
+    with open(pred_path, "r", encoding='utf-8') as pred_file:
+        list_sent = []
 
-            for line in pred_file:
-                if not line.startswith("#"):
-                    if line != "\n":
-                        tokens = line.split("\t")
-                        list_sent.append(tokens[-1].replace("\n", ""))
-                    else:
-                        list_pred.append(list_sent)
-                        list_sent = []
+        for line in pred_file:
+            if not line.startswith("#"):
+                if line != "\n":
+                    tokens = line.split("\t")
+                    list_sent.append(tokens[-1].replace("\n", ""))
+                else:
+                    list_pred.append(list_sent)
+                    list_sent = []
 
-        assert len(list_pred) == len(list_gold)
+    assert len(list_pred) == len(list_gold)
 
-        evaluator = Evaluator(list_gold, list_pred, tags=["PERSON",
-                                                          "NAT_REL_POL",
-                                                          "ORGANIZATION",
-                                                          "GPE",
-                                                          "LOC",
-                                                          "FACILITY",
-                                                          "PRODUCT",
-                                                          "EVENT",
-                                                          "LANGUAGE",
-                                                          "WORK_OF_ART",
-                                                          "DATETIME",
-                                                          "PERIOD",
-                                                          "MONEY",
-                                                          "QUANTITY",
-                                                          "NUMERIC_VALUE",
-                                                          "ORDINAL"])
+    evaluator = Evaluator(list_gold, list_pred, tags=["PERSON",
+                                                      "NAT_REL_POL",
+                                                      "ORGANIZATION",
+                                                      "GPE",
+                                                      "LOC",
+                                                      "FACILITY",
+                                                      "PRODUCT",
+                                                      "EVENT",
+                                                      "LANGUAGE",
+                                                      "WORK_OF_ART",
+                                                      "DATETIME",
+                                                      "PERIOD",
+                                                      "MONEY",
+                                                      "QUANTITY",
+                                                      "NUMERIC_VALUE",
+                                                      "ORDINAL"])
 
-        results, results_agg = evaluator.evaluate()
+    results, results_agg = evaluator.evaluate()
 
-        print("Model: {}\n".format(it + 1))
-        print("|{:^9s}     |{:^11s}|{:^11s}|{:^11s}|".format("Metric", "Precision", "Recall", "F1 Score"))
-        print("+--------------+-----------+-----------+-----------+")
+    for metric, values in zip(metrics, results.values()):
+        metrics[metric]["precision"] = prec = values["precision"]
+        metrics[metric]["recall"] = rec = values["recall"]
+        metrics[metric]["f1"] = 2 * prec * rec / (prec + rec)
 
-        for metric, values in zip(metrics, results.values()):
-            prec = values["precision"]
-            rec = values["recall"]
-            f1 = 2 * prec * rec / (prec + rec)
+    str_json = json.dumps(metrics)
 
-            dict_prec[metric] += prec
-            dict_rec[metric] += rec
-            dict_f1[metric] += f1
-
-            print("| {:13s}|{:^11.2f}|{:^11.2f}|{:^11.2f}|".format(metric, prec * 100, rec * 100, f1*100))
-
-        print()
-        print("+--------------------------------------------------+")
-        print()
-
-    print("Model: average")
-    print("|{:^9s}     |{:^11s}|{:^11s}|{:^11s}|".format("Metric", "Precision", "Recall", "F1 Score"))
-    print("+--------------+-----------+-----------+-----------+")
-
-    for metric in metrics:
-        print("| {:13s}|{:^11.2f}|{:^11.2f}|{:^11.2f}|".format(metric,
-                                                               dict_prec[metric] / args.iterations * 100,
-                                                               dict_rec[metric] / args.iterations * 100,
-                                                               dict_f1[metric] / args.iterations * 100))
+    with open(os.path.join(args.output_path, "ronec.json"), "w") as file:
+        file.write(str_json)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("gold_path")
     parser.add_argument("pred_path")
-    parser.add_argument("--iterations", type=int, default=1)
+    parser.add_argument("--datetime", type=str, default="")
+    parser.add_argument("--output_path", type=str, default="../results")
 
     args = parser.parse_args()
 
