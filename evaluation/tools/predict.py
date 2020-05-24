@@ -10,7 +10,7 @@ def main():
 
     datetime = dt.now().strftime("%d/%m/%Y-%H:%M:%S") if args.datetime == "" else args.datetime
 
-    with open(os.path.join(args.model_path, "label_encoder.pk"), "rb") as file:
+    with open(os.path.join(args.model_path, "label_encoder_{}.pk".format(datetime)), "rb") as file:
         label_encoder = pickle.load(file)
 
     test_loader, _ = load_data_from_file(args.test_path,

@@ -82,15 +82,13 @@ def train_model(model,
             curr_patience = 0
             best_f1 = macro_f1
             torch.save(model, os.path.join(args.save_path, "model_{}.pt".format(datetime)))
-            with open(os.path.join(args.save_path, "label_encoder.pk"), "wb") as file:
-                pickle.dump(label_encoder, file)
         else:
             curr_patience += 1
 
         if curr_patience > args.patience:
             break
 
-    print("Highest dev F1 score obtained: {:.2f}".format(best_f1 * 100))
+    print("\nHighest dev F1 score obtained: {:.2f}".format(best_f1 * 100))
 
 
 def train(train_loader, dev_loader, label_encoder, device):
@@ -115,6 +113,9 @@ def train(train_loader, dev_loader, label_encoder, device):
     target_classes = [label_encoder.transform([clss])[0] for clss in classes]
 
     datetime = dt.now().strftime("%d/%m/%Y-%H:%M:%S") if args.datetime == "" else args.datetime
+
+    with open(os.path.join(args.save_path, "label_encoder_{}.pk".format(datetime)), "wb") as file:
+        pickle.dump(label_encoder, file)
 
     # start training
     train_model(model,
