@@ -510,7 +510,7 @@ def main():
         metrics[metric]["recall"] = rec = values["recall"]
         metrics[metric]["f1"] = 2 * prec * rec / (prec + rec)
 
-    str_json = json.dumps(metrics)
+    str_json = json.dumps(metrics, indent=4)
 
     with open(os.path.join(args.output_path, "ronec.json"), "w") as file:
         file.write(str_json)
