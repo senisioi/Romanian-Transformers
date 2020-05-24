@@ -65,7 +65,7 @@ printf "Load path: %s\n" "$model_frozen_dir"
 printf "Device: %s\n\n" $device
 
 python3 tools/predict.py dataset-ronec/test.conllu "$model_frozen_dir" 10 --lang_model_name "$model" --output_path "outputs/$model_basename/predict_ronec_frozen.conllu" --device $device --datetime "$datetime"
-output=$(python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec_frozen.conllu" --datetime "$datetime" --output_path "results/$model_basename)
+output=$(python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec_frozen.conllu" --datetime "$datetime" --output_path "results/$model_basename")
 echo "$output"
 echo "$output" > "results/$model_basename/ronec_frozen.txt"
 
