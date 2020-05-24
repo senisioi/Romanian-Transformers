@@ -11,7 +11,6 @@ def train_model(model,
                 train_loader, dev_loader,
                 optimizer, criterion,
                 num_classes, target_classes, datetime,
-                label_encoder,
                 device):
 
     # create to Meter's classes to track the performance of the model during training and evaluating
@@ -122,7 +121,6 @@ def train(train_loader, dev_loader, label_encoder, device):
                 train_loader, dev_loader,
                 optimizer, criterion,
                 len(label_encoder.classes_), target_classes, datetime,
-                label_encoder,
                 device)
 
 
