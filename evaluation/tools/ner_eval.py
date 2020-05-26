@@ -512,7 +512,7 @@ def main():
 
     str_json = json.dumps(metrics, indent=4)
 
-    with open(os.path.join(args.output_path, "ronec.json"), "w") as file:
+    with open(args.output_path, "w") as file:
         file.write(str_json)
 
 
@@ -521,7 +521,7 @@ if __name__ == "__main__":
     parser.add_argument("gold_path")
     parser.add_argument("pred_path")
     parser.add_argument("--datetime", type=str, default="")
-    parser.add_argument("--output_path", type=str, default="../results")
+    parser.add_argument("--output_path", type=str, default="../results/ronec.json")
 
     args = parser.parse_args()
 

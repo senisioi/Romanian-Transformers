@@ -20,8 +20,8 @@ fi
 
 device="cuda"
 
-if [ -n "$3" ]; then
-	device="$3"
+if [ -n "$2" ]; then
+	device="$2"
 fi
 
 datetime=$(date +"%d-%m-%Y-%H:%M:%S")
@@ -40,8 +40,6 @@ printf "Device: %s\n\n" $device
 
 python3 tools/train.py dataset-ronec/train.conllu dataset-ronec/dev.conllu 10 --save_path "$model_frozen_dir" --lang_model_name "$model" --device $device --remove_o_label --datetime "$datetime"
 
-printf "\nFinished.\n"
-
 printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 
 printf "Model: %s\n" "$1"
@@ -53,8 +51,6 @@ printf "Device: %s\n" $device
 
 python3 tools/train.py dataset-ronec/train.conllu dataset-ronec/dev.conllu 10 --save_path "$model_dir" --lang_model_name "$model" --device $device --fine_tune --epochs 10 --learning_rate 2e-5 --batch_size 16 --remove_o_label --datetime "$datetime"
 
-printf "\nFinished.\n"
-
 nice_print "Evaluating model on RONEC..."
 
 [ ! -d "outputs/$model_basename" ] && mkdir -p "outputs/$model_basename"
@@ -65,11 +61,7 @@ printf "Load path: %s\n" "$model_frozen_dir"
 printf "Device: %s\n\n" $device
 
 python3 tools/predict.py dataset-ronec/test.conllu "$model_frozen_dir" 10 --lang_model_name "$model" --output_path "outputs/$model_basename/predict_ronec_frozen.conllu" --device $device --datetime "$datetime"
-output=$(python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec_frozen.conllu" --datetime "$datetime" --output_path "results/$model_basename")
-echo "$output"
-echo "$output" > "results/$model_basename/ronec_frozen.txt"
-
-printf "\nFinished.\n"
+python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec_frozen.conllu" --datetime "$datetime" --output_path "results/$model_basename/ronec_frozen.json"
 
 printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 
@@ -78,10 +70,7 @@ printf "Load path: %s\n" "$model_dir"
 printf "Device: %s\n\n" $device
 
 python3 tools/predict.py dataset-ronec/test.conllu "$model_dir" 10 --lang_model_name "$model" --output_path "outputs/$model_basename/predict_ronec.conllu" --device $device --datetime "$datetime"
-python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec.conllu" --datetime "$datetime" --output_path "results/$model_basename"
-echo "$output" > "results/$model_basename/ronec.txt"
-
-printf "\nFinished.\n"
+python3 tools/ner_eval.py dataset-ronec/test.conllu "outputs/$model_basename/predict_ronec.conllu" --datetime "$datetime" --output_path "results/$model_basename/ronec.json"
 
 printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 
