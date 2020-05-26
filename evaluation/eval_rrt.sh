@@ -21,21 +21,10 @@ fi
 device="cuda"
 
 if [ -n "$2" ]; then
-  if  [[ "$2" =~ ^[0-9]+$ ]]
-  then
-	  iterations=$2
-	else
-	  device="$2"
-	  iterations=1
-	fi
-else
-	iterations=1
+	device="$2"
 fi
 
-if [ -n "$3" ]; then
-	device="$3"
-fi
-
+datetime=$(date +"%d-%m-%Y-%H:%M:%S")
 model_basename=$(basename "$model")
 model_dirs=("models/$model_basename/rrt_upos_frozen" "models/$model_basename/rrt_xpos_frozen" "models/$model_basename/rrt_upos" "models/$model_basename/rrt_xpos")
 output_paths=("outputs/$model_basename/predict_rrt_upos_frozen.conllu" "outputs/$model_basename/predict_rrt_xpos_frozen.conllu" "outputs/$model_basename/predict_rrt_upos.conllu" "outputs/$model_basename/predict_rrt_xpos.conllu")
@@ -68,7 +57,7 @@ do
     batch_size=128
   fi
 
-  python3 tools/train.py dataset-rrt/train.conllu dataset-rrt/dev.conllu "${predict_cols[i]}" --save_path "${model_dirs[i]}" --lang_model_name "$model" --device $device $fine_tune --epochs $epochs --learning_rate $learning_rate --batch_size $batch_size --iterations "$iterations"
+  python3 tools/train.py dataset-rrt/train.conllu dataset-rrt/dev.conllu "${predict_cols[i]}" --save_path "${model_dirs[i]}" --lang_model_name "$model" --device $device $fine_tune --epochs $epochs --learning_rate $learning_rate --batch_size $batch_size --datetime "$datetime"
 
   printf "\nFinished.\n"
 
@@ -87,7 +76,7 @@ do
 	printf "Device: %s\n" "$device"
 	printf "Evaluation goal: %s\n\n" "${goals[i]}"
 
-	python3 tools/predict.py dataset-rrt/test.conllu "${model_dirs[i]}" "${predict_cols[i]}" --lang_model_name "$model" --output_path "${output_paths[i]}" --device "$device" --iterations "$iterations"
+	python3 tools/predict.py dataset-rrt/test.conllu "${model_dirs[i]}" "${predict_cols[i]}" --lang_model_name "$model" --output_path "${output_paths[i]}" --device "$device" --datetime "$datetime"
 
 	printf "\nFinished.\n"
 
@@ -96,8 +85,8 @@ done
 
 printf "Frozen Evaluation\n\n"
 
-python3 tools/ud_unite.py "outputs/$model_basename" --frozen --iterations "$iterations"
-output=$(python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt_frozen.conllu" --iterations "$iterations")
+python3 tools/ud_unite.py "outputs/$model_basename" --frozen
+output=$(python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt_frozen.conllu")
 echo "$output"
 echo "$output" > "results/$model_basename/rrt_frozen.txt"
 
@@ -105,8 +94,8 @@ printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 
 printf "Non-Frozen Evaluation\n\n"
 
-python3 tools/ud_unite.py "outputs/$model_basename" --iterations "$iterations"
-output=$(python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt.conllu" --iterations "$iterations")
+python3 tools/ud_unite.py "outputs/$model_basename"
+output=$(python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt.conllu")
 echo "$output"
 echo "$output" > "results/$model_basename/rrt.txt"
 

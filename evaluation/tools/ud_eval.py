@@ -98,6 +98,8 @@ import sys
 import unicodedata
 import unittest
 import os
+from datetime import datetime as dt
+import json
 
 # CoNLL-U column names
 ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MISC = range(10)
@@ -482,62 +484,38 @@ def load_conllu_file(path):
 def evaluate_wrapper(args):
     # Load CoNLL-U files
     dict_metrics = {}
+    datetime = dt.now().strftime("%d/%m/%Y-%H:%M:%S") if args.datetime == "" else args.datetime
 
-    for it in range(args.iterations):
-        system_file = args.system_file.split(".")[0] + "_{}.".format(it + 1) + args.system_file.split(".")[1]
+    system_file = args.system_file.split(".")[0] + "_{}.".format(datetime) + args.system_file.split(".")[1]
 
-        gold_ud = load_conllu_file(args.gold_file)
-        system_ud = load_conllu_file(system_file)
-        evaluation = evaluate(gold_ud, system_ud)
+    gold_ud = load_conllu_file(args.gold_file)
+    system_ud = load_conllu_file(system_file)
+    evaluation = evaluate(gold_ud, system_ud)
 
-        print("Model: {}\n".format(it + 1))
-        print("Metric     | Precision |    Recall |  F1 Score | AligndAcc")
-        print("-----------+-----------+-----------+-----------+-----------")
-        for metric in ["Tokens", "Sentences", "Words", "UPOS", "XPOS", "UFeats", "AllTags", "Lemmas", "UAS", "LAS",
-                       "CLAS", "MLAS", "BLEX"]:
-            if metric not in dict_metrics:
-                dict_metrics[metric] = {}
+    json_dict = {"UPOS": {}, "XPOS": {}}
+    for metric in ["UPOS", "XPOS"]:
+        if metric not in dict_metrics:
+            dict_metrics[metric] = {}
 
-                dict_metrics[metric]["precision"] = evaluation[metric].precision
-                dict_metrics[metric]["recall"] = evaluation[metric].recall
-                dict_metrics[metric]["f1"] = evaluation[metric].f1
-                dict_metrics[metric]["aligned_accuracy"] = evaluation[metric].aligned_accuracy
-            else:
-                dict_metrics[metric]["precision"] += evaluation[metric].precision
-                dict_metrics[metric]["recall"] += evaluation[metric].recall
-                dict_metrics[metric]["f1"] += evaluation[metric].f1
-                if evaluation[metric].aligned_accuracy is not None:
-                    dict_metrics[metric]["aligned_accuracy"] += evaluation[metric].aligned_accuracy
+            dict_metrics[metric]["precision"] = evaluation[metric].precision
+            dict_metrics[metric]["recall"] = evaluation[metric].recall
+            dict_metrics[metric]["f1"] = evaluation[metric].f1
+            dict_metrics[metric]["aligned_accuracy"] = evaluation[metric].aligned_accuracy
+        else:
+            dict_metrics[metric]["precision"] += evaluation[metric].precision
+            dict_metrics[metric]["recall"] += evaluation[metric].recall
+            dict_metrics[metric]["f1"] += evaluation[metric].f1
+            if evaluation[metric].aligned_accuracy is not None:
+                dict_metrics[metric]["aligned_accuracy"] += evaluation[metric].aligned_accuracy
 
-            print("{:11}|{:10.2f} |{:10.2f} |{:10.2f} |{}".format(
-                metric,
-                100 * evaluation[metric].precision,
-                100 * evaluation[metric].recall,
-                100 * evaluation[metric].f1,
-                "{:10.2f}".format(100 * evaluation[metric].aligned_accuracy) if evaluation[
-                                                                                    metric].aligned_accuracy is not None else ""
-            ))
+        json_dict[metric]["precision"] = 100 * evaluation[metric].precision
+        json_dict[metric]["recall"] = 100 * evaluation[metric].recall
+        json_dict[metric]["f1"] = 100 * evaluation[metric].f1
 
-        print()
-        print("-----------------------------------------------------------")
-        print()
+    str_json = json.dumps(json_dict, indent=4)
 
-    print("Model: average\n")
-    print("Metric     | Precision |    Recall |  F1 Score | AligndAcc")
-    print("-----------+-----------+-----------+-----------+-----------")
-    for metric in ["Tokens", "Sentences", "Words", "UPOS", "XPOS", "UFeats", "AllTags", "Lemmas", "UAS", "LAS",
-                   "CLAS", "MLAS", "BLEX"]:
-            print("{:11}|{:10.2f} |{:10.2f} |{:10.2f} |{}".format(
-                metric,
-                100 * dict_metrics[metric]["precision"] / args.iterations,
-                100 * dict_metrics[metric]["recall"] / args.iterations,
-                100 * dict_metrics[metric]["f1"] / args.iterations,
-                "{:10.2f}".format(100 * dict_metrics[metric]["aligned_accuracy"] / args.iterations) if dict_metrics[metric]["aligned_accuracy"] is not None else ""
-            ))
-
-    print()
-    print("-----------------------------------------------------------")
-    print()
+    with open(args.output_path, "w") as file:
+        file.write(str_json)
 
 
 def main():
@@ -547,9 +525,10 @@ def main():
                         help="Name of the CoNLL-U file with the gold data.")
     parser.add_argument("system_file", type=str,
                         help="Name of the CoNLL-U file with the predicted data.")
-    parser.add_argument("--iterations", type=int, default=1)
+    parser.add_argument("--datetime", type=str, default="")
     parser.add_argument("--counts", "-c", default=False, action="store_true",
                         help="Print raw counts of correct/gold/system/aligned words instead of prec/rec/F1 for all metrics.")
+    parser.add_argument("--output_path", type=str, default="../results/rrt.json")
     args = parser.parse_args()
 
     # Evaluate
