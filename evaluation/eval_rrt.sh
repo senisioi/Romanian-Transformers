@@ -59,8 +59,6 @@ do
 
   python3 tools/train.py dataset-rrt/train.conllu dataset-rrt/dev.conllu "${predict_cols[i]}" --save_path "${model_dirs[i]}" --lang_model_name "$model" --device $device $fine_tune --epochs $epochs --learning_rate $learning_rate --batch_size $batch_size --datetime "$datetime"
 
-  printf "\nFinished.\n"
-
   printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 done
 
@@ -78,26 +76,20 @@ do
 
 	python3 tools/predict.py dataset-rrt/test.conllu "${model_dirs[i]}" "${predict_cols[i]}" --lang_model_name "$model" --output_path "${output_paths[i]}" --device "$device" --datetime "$datetime"
 
-	printf "\nFinished.\n"
-
 	printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 done
 
 printf "Frozen Evaluation\n\n"
 
-python3 tools/ud_unite.py "outputs/$model_basename" --frozen
-output=$(python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt_frozen.conllu")
-echo "$output"
-echo "$output" > "results/$model_basename/rrt_frozen.txt"
+python3 tools/ud_unite.py "outputs/$model_basename" --frozen --datetime "$datetime"
+python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt_frozen.conllu" --datetime "$datetime" --output_path "results/$model_basename/rrt_frozen.json"
 
 printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 
 printf "Non-Frozen Evaluation\n\n"
 
-python3 tools/ud_unite.py "outputs/$model_basename"
-output=$(python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt.conllu")
-echo "$output"
-echo "$output" > "results/$model_basename/rrt.txt"
+python3 tools/ud_unite.py "outputs/$model_basename" --datetime "$datetime"
+python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt.conllu" --datetime "$datetime" --output_path "results/$model_basename/rrt.json"
 
 printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 

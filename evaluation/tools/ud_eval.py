@@ -514,7 +514,7 @@ def evaluate_wrapper(args):
 
     str_json = json.dumps(json_dict, indent=4)
 
-    with open(args.output_path, "w") as file:
+    with open(args.output_path[:-5] + "_{}.json".format(datetime), "w") as file:
         file.write(str_json)
 
 
