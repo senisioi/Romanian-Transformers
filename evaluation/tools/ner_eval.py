@@ -512,7 +512,7 @@ def main():
 
     str_json = json.dumps(metrics, indent=4)
 
-    with open(args.output_path, "w") as file:
+    with open(args.output_path[:-5] + "_{}.json".format(datetime), "w") as file:
         file.write(str_json)
 
 
