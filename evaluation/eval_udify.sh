@@ -110,5 +110,4 @@ python3 predict.py "$model_path" ../dataset-rrt/test.conllu "../outputs/$model_b
 results_path="$(find $save_path -name test_results.json)"
 cp "$results_path" "../results/$model_basename/rrt_udify_$datetime.json"
 
-
 cd ..

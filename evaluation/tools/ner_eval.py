@@ -506,9 +506,9 @@ def main():
     results, results_agg = evaluator.evaluate()
 
     for metric, values in zip(metrics, results.values()):
-        metrics[metric]["precision"] = prec = values["precision"]
-        metrics[metric]["recall"] = rec = values["recall"]
-        metrics[metric]["f1"] = 2 * prec * rec / (prec + rec)
+        metrics[metric]["precision"] = prec = values["precision"] * 100
+        metrics[metric]["recall"] = rec = values["recall"] * 100
+        metrics[metric]["f1"] = 2 * prec * rec / (prec + rec) * 100
 
     str_json = json.dumps(metrics, indent=4)
 
