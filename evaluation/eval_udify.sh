@@ -108,7 +108,7 @@ cp "$model_path" "../models/$model_basename/udify_model_$datetime.tar.gz"
 python3 predict.py "$model_path" ../dataset-rrt/test.conllu "../outputs/$model_basename/predict_rrt_udify_$datetime.conllu" --device -1
 
 results_path="$(find $save_path -name test_results.json)"
-cp "$results_path" "../results/$model_basename/udify_test_results_$datetime.json"
+cp "$results_path" "../results/$model_basename/rrt_udify_$datetime.json"
 
 
 cd ..
