@@ -79,14 +79,8 @@ do
 	printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
 done
 
-printf "Frozen Evaluation\n\n"
-
 python3 tools/ud_unite.py "outputs/$model_basename" --frozen --datetime "$datetime"
 python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt_frozen.conllu" --datetime "$datetime" --output_path "results/$model_basename/rrt_frozen.json"
-
-printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
-
-printf "Non-Frozen Evaluation\n\n"
 
 python3 tools/ud_unite.py "outputs/$model_basename" --datetime "$datetime"
 python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt.conllu" --datetime "$datetime" --output_path "results/$model_basename/rrt.json"
