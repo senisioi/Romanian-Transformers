@@ -85,5 +85,3 @@ python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predic
 python3 tools/ud_unite.py "outputs/$model_basename" --datetime "$datetime"
 python3 tools/ud_eval.py dataset-rrt/test.conllu "outputs/$model_basename/predict_rrt.conllu" --datetime "$datetime" --output_path "results/$model_basename/rrt.json"
 
-printf '\n%*s\n\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '#'
-
