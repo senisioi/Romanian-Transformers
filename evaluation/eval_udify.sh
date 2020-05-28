@@ -26,21 +26,10 @@ fi
 device="cuda"
 
 if [ -n "$2" ]; then
-  if  [[ "$2" =~ ^[0-9]+$ ]]
-  then
-	  iterations=$2
-	else
-	  device="$2"
-	  iterations=1
-	fi
-else
-	iterations=1
+	device="$2"
 fi
 
-if [ -n "$3" ]; then
-	device="$3"
-fi
-
+datetime=$(date +"%d-%m-%Y-%H:%M:%S")
 model_basename=$(basename "$model")
 vocab="$model"
 
@@ -106,21 +95,20 @@ sed -i '11i\        "pretrained_model": "'"$vocab"'",' "$udify_config"
 [ ! -d "../outputs/$model_basename" ] && mkdir -p "../outputs/$model_basename"
 [ ! -d "../results/$model_basename" ] && mkdir -p "../results/$model_basename"
 
-for (( iteration=1; iteration<="$iterations"; iteration++ ))
-do
+
   [ -d "$save_path" ] && rm -r "$save_path"
 
-  python3 train.py --config "$udify_config" --name ro_rrt --replace_vocab
+python3 train.py --config "$udify_config" --name ro_rrt --replace_vocab
 
-  nice_print "Evaluating Udify model on UD Romanian RRT..."
+nice_print "Evaluating Udify model on UD Romanian RRT..."
 
-  model_path="$(find $save_path -name model.tar.gz)"
-  cp "$model_path" "../models/$model_basename/udify_model_$iteration.tar.gz"
+model_path="$(find $save_path -name model.tar.gz)"
+cp "$model_path" "../models/$model_basename/udify_model_$datetime.tar.gz"
 
-  python3 predict.py "$model_path" ../dataset-rrt/test.conllu "../outputs/$model_basename/predict_rrt_udify_$iteration.conllu" --device -1
+python3 predict.py "$model_path" ../dataset-rrt/test.conllu "../outputs/$model_basename/predict_rrt_udify_$datetime.conllu" --device -1
 
-  results_path="$(find $save_path -name test_results.json)"
-  cp "$results_path" "../results/$model_basename/udify_test_results_$iteration.json"
-done
+results_path="$(find $save_path -name test_results.json)"
+cp "$results_path" "../results/$model_basename/udify_test_results_$datetime.json"
+
 
 cd ..
