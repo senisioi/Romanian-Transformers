@@ -29,7 +29,7 @@ if [ -n "$2" ]; then
 	device="$2"
 fi
 
-datetime=$(date +"%d-%m-%Y-%H:%M:%S")
+datetime=$(date +"%d-%m-%Y-%H-%M-%S")
 model_basename=$(basename "$model")
 vocab="$model"
 

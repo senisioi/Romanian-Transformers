@@ -24,7 +24,7 @@ if [ -n "$2" ]; then
 	device="$2"
 fi
 
-datetime=$(date +"%d-%m-%Y-%H:%M:%S")
+datetime=$(date +"%d-%m-%Y-%H-%M-%S")
 model_basename=$(basename "$model")
 model_dirs=("models/$model_basename/rrt_upos_frozen" "models/$model_basename/rrt_xpos_frozen" "models/$model_basename/rrt_upos" "models/$model_basename/rrt_xpos")
 output_paths=("outputs/$model_basename/predict_rrt_upos_frozen.conllu" "outputs/$model_basename/predict_rrt_xpos_frozen.conllu" "outputs/$model_basename/predict_rrt_upos.conllu" "outputs/$model_basename/predict_rrt_xpos.conllu")
