@@ -44,6 +44,12 @@ class Cleaner():
        self.r7 = re.compile(r'([^@]+@[^@]+\.[^@]+)')
 
        """
+       table separators
+       """
+       self.r8 = re.compile(r'[\─\─]+')
+       self.r9 = re.compile(r'[\-\-]+')
+
+       """
        multiple spaces
        """
        self.space = re.compile(' +')
@@ -53,7 +59,7 @@ class Cleaner():
        """
        self.forbidden_chars = "ºþÈ™ÓÑÄÈÃ®ƒ"
 
-   def process(self, lines, percent_max_numeric=0.25, percent_max_non_ascii=0.40, min_line_length=20, verbose=False, disable_pbar=True):
+   def process(self, lines, percent_max_numeric=0.7, percent_max_non_ascii=0.40, min_line_length=20, verbose=False, disable_pbar=True):
        skipped_because_min_length = np.array([0,0], dtype=np.uint64)
        skipped_alpha_count = np.array([0,0], dtype=np.uint64)
        skipped_because_max_numeric = np.array([0,0], dtype=np.uint64)
@@ -115,6 +121,13 @@ class Cleaner():
                    print("Skipping ascii={:.3f}: [{}]".format(digit_count / alpha_count, line))
                continue
 
+           #skip lines that appear to be ascii tables │
+           if (line.strip() == '|' and  line.count('|') > 2) or (line.strip() == '│' and  line.count('│') > 2):
+               skipped_because_forbidden_chars += np.array([1,length], dtype=np.uint64)
+               if verbose:
+                   print("Skipping table line: [{}]".format(line))
+               continue
+
            # clean line
            #print("\nbef: {}".format(line))
            line = self.r1.sub(r"\1\2", line)
@@ -124,6 +137,9 @@ class Cleaner():
            line = self.r5.sub("", line)
            line = self.r6.sub("", line)
            line = self.r7.sub("", line)
+           # separators
+           line = self.r8.sub("", line)
+           line = self.r9.sub("", line)
 
            line = line.replace("( ă)", "(ă)")
            line = line.replace("ţ", "ț")
