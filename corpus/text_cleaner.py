@@ -122,7 +122,7 @@ class Cleaner():
                continue
 
            #skip lines that appear to be ascii tables │
-           if (line.strip() == '|' and  line.count('|') > 2) or (line.strip() == '│' and  line.count('│') > 2):
+           if (line.strip()[0] == '|' and  line.count('|') > 2) or (line.strip()[0] == '│' and  line.count('│') > 2):
                skipped_because_forbidden_chars += np.array([1,length], dtype=np.uint64)
                if verbose:
                    print("Skipping table line: [{}]".format(line))
